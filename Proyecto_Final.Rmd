@@ -1,0 +1,140 @@
+---
+title: "Clase4"
+author: "Ssilvaa98"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(psych)
+library(corrplot)
+library(plotly)
+library(caret)
+library(magrittr)
+library(Metrics)
+```
+
+### 1. Creación del Set de Datos.
+
+```{r}
+red_sol <- c(3,7,11,15,18,27,29,30,30,31,31,32,33,33,34,36,
+             36,36,37,38,39,39,39,40,41,42,42,43,44,45,46,
+             47,50)
+red_dem_ox <- c(5,11,21,16,16,28,27,25,35,30,40,32,34,32,34,
+                37,38,34,36,38,37,36,45,39,41,40,44,37,44,
+                46,46,49,51)
+df <- data.frame(red_sol, red_dem_ox)
+
+head(df)
+```
+
+### 2. Análisis de Variables & 3. Graficación de los Datos.
+
+```{r}
+summary(df)
+```
+### Obrservando las medidas de tendencia central, podemos observar que las medias de las dos columnas son las mismas, y la casi exactitud o similitud en los otros percentiles marcan una gran correlacion entre los datos.
+
+```{r}
+plot(df$red_sol, df$red_dem_ox)
+```
+
+### En esta grafica observamos que entre mas alta es la reduccion de la solidez del objeto, menor oxigeno es necesario para mantenerse, en otras palabras que la reduccion en la demanda de oxigeno es alta.
+
+```{r}
+boxplot(df)
+```
+
+### Datos muy correlacionados y nada dispersos.
+
+```{r}
+cor(df, method = 'pearson')
+```
+```{r}
+correlacion <- cor(df)
+corrplot(correlacion, method = "number")
+```
+
+### Alta correlacion entre ellos; correlacion positiva.
+
+
+4. Entrenamiento del Modelo de Regresión Lineal.
+
+```{r}
+index <- createDataPartition(df$red_dem_ox, times = 1, p=0.8, list = FALSE)
+
+train.data <- df[index, ]
+test.data <- df[-index, ]
+
+head(train.data)
+```
+
+### Se crea una particion de los datos originales del dataframe llamado "df", este va a obtener un 80% de los datos para el entrenamiento de los datos, y un 20% para una prueba de datos.
+
+```{r}
+linear_model <- lm(red_dem_ox~red_sol, data = train.data)
+summary(linear_model)
+```
+### Al crear un modelo linear, teniendo en cuenta que nuestra variable objetivo es la reduccion de demanda de oxigeno, y, sabiendo que solo una variable caracteristica o independiente tenemos, el resultado en R-squared es de un 0.87 en nuestro indicador de efectividad para la regresion.
+
+```{r}
+predicted <- predict(linear_model, newdata = test.data)
+predicted
+```
+### Prediciendo resultados con los datos de pruebas para ir viendo que tan certeros son.
+
+# Efectividad con los datos de prueba
+
+```{r}
+rmse(test.data$red_sol, predicted)
+```
+### Error cuadratico medio, evaluando la precision del modelo de prediccion, teniendo un valor bajo quiere decir que el modelo tiene un buen rendimiento y que las predicciones estan cerca de los valores reales.
+
+
+```{r}
+predicted_53 <- predict(linear_model, newdata = data.frame(red_sol=53))
+predicted_53
+```
+### Predecimos con valor de 53 a la ultima fila de la columna, para poder conocer la afectacion de oxigeno con este valor dado.
+
+5. Función de Predicción.
+
+```{r}
+predict_user <- function(x) {
+  predicted_user <- predict(linear_model, newdata = data.frame(red_sol=x))
+  return(predicted_user)
+}
+
+x <- readline(prompt = "Enter the number to predict: ")
+x <- as.integer(x)
+
+predicted_value <- predict_user(x)
+
+print(predicted_value)
+```
+### Poder permitir al usuario ingresar un valor para poder predecir el resultado de afectacion de oxigeno en solidos.
+
+6. Graficación de la Regresión.
+
+```{r}
+ggplot(test.data, aes(x = predicted, y = red_dem_ox)) +
+  geom_point() +
+  geom_abline(intercept=0, slope=1) +
+  labs(x='Predicted values', y='Actual values', title='Reduccion en solidos VS Reduccion en demanda de oxigeno en solidos')
+```
+
+### Regresion lineal graficada de los datos cargados, los datos de prueba y predecidos en relacion a la demanda de oxigeno.
+
+7. Validación del Resultado.
+
+* Desde el principio los resultados de las variables obtenidos, empezando por las medidas de tendencia central, se puede observar que las medidas no son dispersas, se mantienen al margen de la media creando una relacion estable en forma de campana; esto podemos denotarlo en los boxplots realizados, son muy pocos datos dispersos, a esto sumando que no hay datos nulos, el estudio de ellos se hizo mas manejable.
+
+* De acuerdo a su correlacion por el metodo de pearson, se observa que la correlacion es positiva, quiere decir que si uno aumenta el otro aumenta de la misma manera.
+
+* Al momento de crear un modelo de regresion lineal, proponemos al modelo poder entrenar el modelo con el 80% de los datos, mientras el modelo de testeo solo tiene un 20% para poder predecir los datos; al momento de obtener las medidas de tendencia central del modelo de entrenamiento podemos observar que el R-squared es de un 0.87, es alto y sus datos son muy certeros para predecir eventos futuros. Esto tambien se relaciona al Error cuadratico medio, que obtuvimos un valor de 2.15, y mientras mas bajo mas es el nivel de certeza.
+
+* Luego de crear este modelo, pudimos tanto agregar un valor mas a nuestro modelo de prediccion, en este caso el numero 53 fue parte de la prueba obteniendo un valor de 51.52; luego poder ingresar desde consola el valor que queremos predecir, para este ejemplo, pudimos ingresar el valor de 78 obteniendo asi un resultado de 73.70.
+
+* Para finalizar, en el modelo de regresion lineal pero en su graficado, podemos observar que la relacion entre las variables son positivas, entre mayor es la reduccion de un solido, mayor es la reduccion del oxigeno que necesita, asi mismo respaldando la informacion que obervamos desde la correlacion por el metodo de pearson.
+
